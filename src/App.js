@@ -29,7 +29,6 @@ pixabayFetchPhoto(search, currentPage)
     setError(error);
   })
   .finally(() => {
-    //onLoadMoreButtonClick();
     setIsLoading(false);
   });
   }, [currentPage, search]);
