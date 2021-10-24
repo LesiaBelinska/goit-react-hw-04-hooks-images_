@@ -1,5 +1,5 @@
 import './App.css';
-import React, { Component } from 'react';
+import { useState, useEffect } from 'react';
 
 import pixabayFetchPhoto from './services/pixabay';
 import Searchbar from './components/Searchbar/Searchbar';
@@ -7,73 +7,74 @@ import ImageGallery from './components/ImageGallery/ImageGallery';
 import Button from './components/Button/Button';
 import LoaderSpinner from './components/Loader/Loader';
 
-export default class App extends Component {
-  state = {
-    images: [],
-    currentPage: 1,
-    search: '',
-    error: null,
-  };
+export default function App() {
 
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.search !== this.state.search) {
-      this.fetchPhoto();
-    }
+  const [images, setImages] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+  if (!search) {
+    return;
   }
+    
+   setIsLoading(true);
+pixabayFetchPhoto(search, currentPage)
+  .then(gallery => {
+    setImages(prevState => [...prevState, ...gallery]);
+  })
+  .catch(error => {
+    setError(error);
+  })
+  .finally(() => {
+    //onLoadMoreButtonClick();
+    setIsLoading(false);
+  });
+  }, [currentPage, search]);
+  
+  const onLoadMoreButtonClick = () => {
+    setCurrentPage(prevState => prevState + 1);
+    const options = {
+          top: null,
+          behavior: 'smooth',
+        };
 
-  handleSubmit = newSearch => {
-    this.setState({ search: newSearch, currentPage: 1, images: [], error: null });
-  };
+        options.top = window.pageYOffset + document.documentElement.clientHeight;
+        setTimeout(() => {
+          window.scrollTo(options);
+        }, 500);
+    };
 
-  fetchPhoto = () => {
-    const { search, currentPage } = this.state;
-
-    this.setState({ isLoading: true });
-
-    pixabayFetchPhoto(search, currentPage)
-      .then(gallery => {
-        this.setState(prevState => ({
-          images: [...prevState.images, ...gallery],
-          currentPage: prevState.currentPage + 1,
-        }));
-      })
-      .catch(error => this.setState({ error }))
-      .finally(() => {
-        this.onLoadMoreButtonClick();
-        this.setState({ isLoading: false });
-      });
-      
-  };
-
-  onLoadMoreButtonClick = () => {
-    if (this.state.currentPage > 2) {
-      const options = {
-        top: null,
-        behavior: 'smooth',
-      };
-
-      options.top = window.pageYOffset + document.documentElement.clientHeight;
-      setTimeout(() => {
-        window.scrollTo(options);
-      }, 500);
+  const handleSubmit = newSearch => {
+    if (newSearch === search) {
+      return;
     }
+    setSearch(newSearch);
+    setCurrentPage(1);
+    setImages([]);
   };
-
-  render() {
-    return (
+    
+  
+   return (
       <div className="App">
        
-        <Searchbar onSubmit={this.handleSubmit} />
-        {this.state.error && (<p>No matches found! Try again!</p>)}
-        {this.state.isLoading && (
-          <LoaderSpinner/>
+        <Searchbar onSubmit={handleSubmit} />
+        {error && (<p>No matches found! Try again!</p>)}
+        {isLoading && (
+          <LoaderSpinner />
         )}
-        <ImageGallery images={this.state.images} />
-        {this.state.search && this.state.images.length > 11 && (
-            <Button onClick={this.fetchPhoto}/>
+        <ImageGallery images={images} />
+        {search && images.length > 11 && (
+          <Button onClick={onLoadMoreButtonClick} />
         )}
       </div>
-    );
-  }
+    ); 
 }
 
+  
+
+
+  
+  
